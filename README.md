@@ -1,1 +1,1 @@
-# snd
+# snd - cli app
