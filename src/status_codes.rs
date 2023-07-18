@@ -1,0 +1,7 @@
+pub const CONNECTION_REQUEST: u8 = 1;
+pub const CONNECTION_REJECTED: u8 = 3;
+pub const BROADCAST_MESSAGE: u8 = 4;
+pub const DISCONNECT: u8 = 6;
+pub const CONNECTION_REQUEST_TIMEOUT: u8 = 7;
+pub const CONNECTION_REQUEST_REJECTED: u8 = 8;
+pub const CONNECTION_REQUEST_ACCEPTED: u8 = 9;
