@@ -35,6 +35,7 @@ pub fn streamline_listen() {
 
 pub fn local_direct_chat(me: User, connect_to: String) -> thread::JoinHandle<()> {
     let mut stream = streamline_connect(connect_to);
+    println!("CONNECTEDDD");
 
     let th = thread::spawn(move || loop {
         let mut input = String::new();

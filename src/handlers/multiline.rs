@@ -21,23 +21,26 @@ pub fn multiline_listen(socket: &UdpSocket, myname: String) {
             match socket_clone.recv_from(&mut msg) {
                 Ok((amt, src)) => {
                     let code = msg[0];
-                    let msg_str = String::from_utf8_lossy(&msg[1..amt]).to_string();
+                    let msg = String::from_utf8_lossy(&msg[1..amt]).to_string();
                     match code {
                         1 => {
                             println!("1 Connection Request from {}", src);
                         }
                         4 => {
-                            println!("4 Broadcast Message from {}: {}", src, msg_str);
+                            println!("4 Broadcast Message from {}: {}", src, msg);
                         }
                         6 => {
-                            println!("6 Message from {}: {}", src, msg_str);
+                            println!("6 Message from {}: {}", src, msg);
                         }
                         9 => {
-                            println!("9 Username query from {}: {}", src, msg_str);
-                            let res = format!("{}{}", 10 as char, myname);
-                            socket_clone.send_to(res.as_bytes(), src).unwrap();
+                            println!("9 Username query from {}: {}", src, msg);
+                            if(msg == myname) {
+                                print!("{} is me", msg);
+                                let res = format!("{}{}", 10 as char, myname);
+                                socket_clone.send_to(res.as_bytes(), src).unwrap();
+                            }
                         }
-                        _ => println!("_Unknown Message from {}: {}{}", src, code, msg_str),
+                        _ => println!("_Unknown Message from {}: {}{}", src, code, msg),
                     }
                 }
                 Err(err) => {
@@ -77,6 +80,10 @@ pub fn local_query(code: u8, query: String, ack: bool) -> String {
     let socket = UdpSocket::bind("0.0.0.0:4002").unwrap();
     let socket_clone = socket.try_clone().expect("Failed to clone socket");
 
+    socket
+        .join_multicast_v4(&Ipv4Addr::new(224,0,0,1), &Ipv4Addr::UNSPECIFIED)
+        .unwrap();
+
     let th = thread::spawn(move || {
         let msg = format!("{}{}", code as char, query);
         for _ in 0..3 {
@@ -104,9 +111,9 @@ pub fn local_query(code: u8, query: String, ack: bool) -> String {
         let msg: String = String::from_utf8_lossy(&msg[1..amt]).to_string();
         match code {
             10 => {
-                println!("ZUsername ACK from {}", src);
+                println!("ZUsername ACK from {}", src.ip().to_string());
                 println!("RES_{result}");
-                result = format!("{}{}|{}{}", result, src.to_string(), msg, 0 as char);
+                result = format!("{}{}|{}{}", result, src.ip().to_string(), msg, 0 as char);
                 sources.insert(src.to_string());
             }
             _ => println!("ZUnknown Message from {}: {}{}", src, code, msg),

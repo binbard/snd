@@ -12,12 +12,12 @@ pub fn handle(myname: String, connect_to: String) {
     let socket = UdpSocket::bind("0.0.0.0:4000").unwrap();
     let socket_clone = socket.try_clone().expect("Failed to clone socket");
 
-    let user: User = User::new("notok".to_string(), "192.168.29.248".to_string(), true);
+    let user: User = User::new(myname.clone(), "192.168.29.248".to_string(), true);
     let th_local_chat = local_room_chat(&socket, myname);
 
     // local_room_listen(&socket)
     // query_listen(&socket);
-    let result = local_query(9, "who are you".to_string(), true);
+    let result = local_query(9, "binbard".to_string(), true);
     let connect_to = result.splitn(2,'|').next().unwrap().to_string();
     println!("Result: '{}'", connect_to);
     streamline_listen();
