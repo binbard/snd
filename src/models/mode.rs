@@ -227,7 +227,7 @@ impl App {
             return;
         }
         let code = 11 as u8;
-        let msg = format!("{}:{}", code, msg);
+        let msg = format!("{}", msg);
         self.user
             .as_ref()
             .unwrap()
@@ -264,7 +264,7 @@ impl App {
             Mode::Direct(val) => {
                 println!("Mode: Direct, Address: {}", val);
                 self.set_user(val.clone());
-                // self.listen_streamline_client();
+                self.listen_streamline_client();
                 loop {
                     let mut input = String::new();
                     stdin().read_line(&mut input).unwrap();

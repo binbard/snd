@@ -54,14 +54,14 @@ impl User {
     }
     pub fn send(&self, text: String) -> Result<(), Error>{
         if(self.stream.is_none()) {
-            Error::new(std::io::ErrorKind::NotConnected, "No connection to user!");
+            Error::new(std::io::ErrorKind::NotConnected, "No connection to user");
         }
         self.stream.as_ref().unwrap().write(text.as_bytes())?;
         Ok(())
     }
     pub fn send_msg(&mut self, text: String) -> Result<(), Error>{
         let code = 11 as u8;
-        let msg = format!("{}", text);
+        let msg = format!("{}:{}", code, text);
         self.send(msg)?;
         // let user = Rc::new(self.my_ref());
         let message = Message::new(self.uid.clone(), text);
