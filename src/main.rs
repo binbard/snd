@@ -38,6 +38,7 @@ fn main() {
                 } else {
                     username = args[i].clone();
                 }
+                mode = Mode::Direct(username.clone());
             }
             "--username" | "-u" => {
                 if i + 1 < args.len() {
