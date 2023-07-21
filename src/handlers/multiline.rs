@@ -77,8 +77,8 @@ pub fn local_room_chat(socket: &UdpSocket, myname: String) -> thread::JoinHandle
 }
 
 pub fn local_query(code: u8, query: String, ack: bool) -> String {
-    let socket = UdpSocket::bind("0.0.0.0:4002").unwrap();
-    let socket_clone = socket.try_clone().expect("Failed to clone socket");
+    let socket: UdpSocket = UdpSocket::bind("0.0.0.0:4002").unwrap();
+    let socket_clone: UdpSocket = socket.try_clone().expect("Failed to clone socket");
 
     socket
         .join_multicast_v4(&Ipv4Addr::new(224,0,0,1), &Ipv4Addr::UNSPECIFIED)

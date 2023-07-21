@@ -39,16 +39,12 @@ impl User {
         };
         user
     }
-    pub fn my_ref(self) -> Rc<User> {
-        Rc::new(self)
-    }
     pub fn connect(&mut self, user: Rc<User>) -> Result<(), Error>{
         if(self.chat.is_some()) {
-            // Already connected
             return Ok(());
         }
-        let stream = TcpStream::connect(&user.uid)?;
-        let mut chat = ChatInfo {
+        let stream: TcpStream = TcpStream::connect(&user.uid)?;
+        let mut chat: ChatInfo = ChatInfo {
             messages: Vec::new(),
             msg_count: 0,
             unread_count: 0,
@@ -58,7 +54,7 @@ impl User {
     }
     pub fn send(&self, text: String) -> Result<(), Error>{
         if(self.stream.is_none()) {
-            Error::new(std::io::ErrorKind::NotConnected, "No connection");
+            Error::new(std::io::ErrorKind::NotConnected, "No connection to user!");
         }
         self.stream.as_ref().unwrap().write(text.as_bytes())?;
         Ok(())
