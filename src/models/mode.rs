@@ -1,7 +1,13 @@
 use std::{
-    io::{stdin, Read},
+    io::{stdin, Read, stdout},
     net::{Ipv4Addr, TcpListener, TcpStream, UdpSocket},
-    thread,
+    thread, time::Duration,
+};
+
+use crossterm::{
+    cursor::{self, MoveTo}, execute,
+    style::{Color, Print, ResetColor, SetForegroundColor},
+    terminal::{self, Clear, ClearType},
 };
 
 use super::chat::User;
@@ -88,6 +94,8 @@ impl App {
         let my_ip: String = self.me.uid.clone();
         let is_user = self.user.is_some();
 
+        let unamefmt = format!("({})", username);
+
         let th = thread::spawn(move || {
             let mut msg = [0u8; 1024];
 
@@ -118,7 +126,20 @@ impl App {
                             }
                             6 => {
                                 // ROOM_MESSAGE
-                                println!("M] {}{}", src.ip().to_string(), msg);
+                                // println!("M] {}{}", src.ip().to_string(), msg);
+                                let mut color = Color::DarkGreen;
+                                if msg.starts_with(&unamefmt) {
+                                    color = Color::DarkGrey;
+                                } else{
+                                    color = Color::DarkMagenta;
+                                }
+                                execute!(
+                                    stdout(),
+                                    SetForegroundColor(color),
+                                    Print(format!("{}: ", src.ip().to_string())),
+                                    ResetColor,
+                                    Print(format!("{}\n", msg)),
+                                ).unwrap();
                             }
                             9 => {
                                 println!("M] Username query from {}: {}", src, msg);
@@ -152,7 +173,14 @@ impl App {
         self.user.as_mut().unwrap().stream = Some(stream.try_clone().unwrap());
 
         thread::spawn(move || {
-            println!("New connection: {}", src);
+            // println!("New connection: {}", src);
+            execute!(
+                stdout(),
+                SetForegroundColor(Color::DarkYellow),
+                Print(format!("New connection: {}\n", src.ip().to_string())),
+                ResetColor,
+            ).unwrap();
+
             let mut buf = [0; 1024];
             loop {
                 match stream.read(&mut buf) {
@@ -162,7 +190,14 @@ impl App {
                             break;
                         }
                         let msg = String::from_utf8_lossy(&buf[..bytes_read]);
-                        println!("{src}: {}", msg);
+                        // println!("{src}: {}", msg);
+                        execute!(
+                            stdout(),
+                            SetForegroundColor(Color::DarkMagenta),
+                            Print(format!("{}: ", src.ip().to_string())),
+                            ResetColor,
+                            Print(format!("{}\n", msg)),
+                        ).unwrap();
                     }
                     Err(e) => {
                         println!("Connection closed by the remote: {}", e);
@@ -179,7 +214,14 @@ impl App {
         }
         let mut listener_client = self.user.as_ref().unwrap().stream.as_ref().unwrap().try_clone().unwrap();
         thread::spawn(move || {
-            println!("New connection: {}", "Server");
+
+            execute!(
+                stdout(),
+                SetForegroundColor(Color::DarkYellow),
+                Print(format!("New connection: {}", "Server\n")),
+                ResetColor,
+            ).unwrap();
+            
             let mut buf = [0; 1024];
             loop {
                 match listener_client.read(&mut buf) {
@@ -189,7 +231,14 @@ impl App {
                             break;
                         }
                         let msg = String::from_utf8_lossy(&buf[..bytes_read]);
-                        println!("Server: {}", msg);
+                        // println!("Server: {}", msg);
+                        execute!(
+                            stdout(),
+                            SetForegroundColor(Color::DarkMagenta),
+                            Print("Server: "),
+                            ResetColor,
+                            Print(format!("{}\n", msg)),
+                        ).unwrap();
                     }
                     Err(e) => {
                         println!("Connection closed by the remote: {}", e);
@@ -236,14 +285,28 @@ impl App {
     }
 
     pub fn run(&mut self) {
+        
         self.listen_multiline();
         self.set_my_ip();
 
-        println!("Username: {}", self.me.username);
+        // println!("Username: {}", self.me.username);
+        execute!(
+            stdout(),
+            SetForegroundColor(Color::DarkYellow),
+            Print(format!("Username: {}\n",self.me.username)),
+            ResetColor,
+        ).unwrap();
 
         match &self.mode {
             Mode::None => {
-                println!("Mode: None");
+                execute!(
+                    stdout(),
+                    Print("Mode: "),
+                    SetForegroundColor(Color::Red),
+                    Print("None\n"),
+                    ResetColor,
+                ).unwrap();
+                
                 self.listen_streamline();
                 loop {
                     let mut input = String::new();
@@ -253,7 +316,15 @@ impl App {
                 }
             }
             Mode::Room => {
-                println!("Mode: Room");
+                // println!("Mode: Room");
+                execute!(
+                    stdout(),
+                    Print("Mode: "),
+                    SetForegroundColor(Color::Blue),
+                    Print("Room\n"),
+                    ResetColor,
+                ).unwrap();
+
                 loop {
                     let mut input = String::new();
                     stdin().read_line(&mut input).unwrap();
@@ -262,7 +333,17 @@ impl App {
                 }
             }
             Mode::Direct(val) => {
-                println!("Mode: Direct, Address: {}", val);
+
+                execute!(
+                    stdout(),
+                    Print("Mode: "),
+                    SetForegroundColor(Color::DarkMagenta),
+                    Print("Direct\n"),
+                    ResetColor,
+                    Print(format!("Address: {}\n", val)),
+                ).unwrap();
+
+                // println!("Mode: Direct, Address: {}", val);
                 self.set_user(val.clone());
                 self.listen_streamline_client();
                 loop {

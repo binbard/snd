@@ -4,13 +4,14 @@ mod handlers{
     pub mod handler;
     pub mod multiline;
     pub mod streamline;
+    pub mod xtui;
 }
 mod models{
     pub mod chat;
     pub mod mode;
 }
 
-use handlers::handler::handle as handler;
+use handlers::xtui::load_cli;
 use models::{mode::{Mode, App}, chat::User};
 
 use std::env;
@@ -18,7 +19,6 @@ use std::env;
 
 
 fn main() {
-    // handler("notok".to_string(), "binbard".to_string());
 
     let args: Vec<String> = env::args().collect();
     
@@ -57,6 +57,9 @@ fn main() {
     let me = User::new(username.clone(), "".to_string(), true);
 
     let mut app = App::new(me, mode);
+
+    load_cli();
+    
     app.run();
 
     // handler(mode, username);
