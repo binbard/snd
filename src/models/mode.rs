@@ -100,7 +100,7 @@ impl App {
                                 socket_clone.send_to(res.as_bytes(), src).unwrap();
                             }
                             1 => {
-                                println!("M] Connection Request from {}", src);
+                                println!("M] Connection Request from {} | Sent {}", src, username);
                                 if is_user {
                                     // CONNECTION_REQUEST_REJECTED
                                     let res = format!("{}{}", 5 as char, username);
@@ -165,14 +165,16 @@ impl App {
             .to_string();
         println!("My IP: '{}'", self.me.uid);
     }
-    pub fn get_user(&self, uname: String) -> User {
+    pub fn set_user(&mut self, uname: String) {
         let result = self.query(9, uname, true);
         let user_name = result.splitn(2, '|').next().unwrap().to_string();
         let user_ip = result.splitn(2, '|').last().unwrap().to_string();
-        println!("Found user: {}@'{}'", user_name, user_ip);
+        println!("Found user: {}", result);
         let mut user = User::new(user_name, user_ip.clone(), false);
-        user.stream = Some(TcpStream::connect(user_ip).expect("Failed to connect to user"));
-        user
+        let dst = user_ip.clone() + &":4000".to_string();
+        println!("Connecting to user: {}", user_ip);
+        user.stream = Some(TcpStream::connect(dst).expect("Failed to connect to user"));
+        self.user = Some(user);
     }
     pub fn send_user(&self, msg: String) {
         if (self.user.is_none()) {
@@ -215,7 +217,7 @@ impl App {
             }
             Mode::Direct(val) => {
                 println!("Mode: Direct, Address: {}", val);
-                self.user = Some(self.get_user(val.clone()));
+                self.set_user(val.clone());
                 loop {
                     let mut input = String::new();
                     stdin().read_line(&mut input).unwrap();

@@ -31,14 +31,14 @@ fn main() {
             "room" => {
                 mode = Mode::Room;
             }
-            s if s.starts_with('@') || s.starts_with('.') || s.starts_with('1') => {
-                if(s.starts_with('@') || s.starts_with('.')) {
-                    username = args[i].clone();
-                    username.remove(0);
+            s if s.starts_with('/') || s.starts_with('.') || s.starts_with('1') => {
+                let mut other_user = String::new();
+                if s.starts_with('/') || s.starts_with('.') {
+                    other_user = s[1..].to_string();
                 } else {
-                    username = args[i].clone();
+                    other_user = s.to_string();
                 }
-                mode = Mode::Direct(username.clone());
+                mode = Mode::Direct(other_user);
             }
             "--username" | "-u" => {
                 if i + 1 < args.len() {
