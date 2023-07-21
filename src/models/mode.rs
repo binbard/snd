@@ -56,18 +56,22 @@ impl App {
         self.send_multicast(6, msg);
     }
     pub fn query(&self, code: u8, query: String, ack: bool) -> String {
-        let msg = format!("{}{}", code as char, query);
+        let qu = format!("{}{}", code as char, query);
         if (code == 0) {
-            self.sock_query.send_to(msg.as_bytes(), "224.0.0.1:4000");
+            self.sock_query.send_to(qu.as_bytes(), "224.0.0.1:4000");
         } else {
-            self.sock_query.send_to(msg.as_bytes(), "224.0.0.1:4000");
+            self.sock_query.send_to(qu.as_bytes(), "224.0.0.1:4000");
         }
         let mut result = String::new();
         if (ack == false) {
             return result;
         }
 
+        // self.sock_query.set_read_timeout(Some(std::time::Duration::from_millis(1000)))
+        //     .expect("Failed to set read timeout");
+
         let mut msg = [0u8; 1024];
+        // let _ = self.sock_query.recv_from(&mut msg).unwrap();
         let (amt, src) = self.sock_query.recv_from(&mut msg).unwrap();
         result = String::from_utf8_lossy(&msg[1..amt]).to_string();
         result = format!("{}|{}", src.ip().to_string(), result);
@@ -121,7 +125,7 @@ impl App {
                                 if (msg == username
                                     || (msg.starts_with('.') && my_ip.ends_with(&msg)))
                                 {
-                                    println!("{} is me. Sent {}", msg, username);
+                                    println!("{} is me", msg);
                                     let res = format!("{}{}", 10 as char, username);
                                     socket_clone.send_to(res.as_bytes(), src).unwrap();
                                 }
@@ -167,8 +171,8 @@ impl App {
     }
     pub fn set_user(&mut self, uname: String) {
         let result = self.query(9, uname, true);
-        let user_name = result.splitn(2, '|').next().unwrap().to_string();
-        let user_ip = result.splitn(2, '|').last().unwrap().to_string();
+        let user_ip = result.splitn(2, '|').next().unwrap().to_string();
+        let user_name = result.splitn(2, '|').last().unwrap().to_string();
         println!("Found user: {}", result);
         let mut user = User::new(user_name, user_ip.clone(), false);
         let dst = user_ip.clone() + &":4000".to_string();
