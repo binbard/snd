@@ -78,7 +78,7 @@ impl App {
 
         result
     }
-    pub fn listen_multiline(&self) -> thread::JoinHandle<()> {
+    pub fn listen_multiline(&self) {
         let socket_clone = self
             .sock_server
             .try_clone()
@@ -141,14 +141,15 @@ impl App {
                 }
             }
         });
-        th
     }
 
-    pub fn listen_streamline(&self, th: thread::JoinHandle<()>) {
+    pub fn listen_streamline(&mut self) {
         let listener = TcpListener::bind("0.0.0.0:4002").unwrap();
         let (mut stream, mut src) = listener.accept().unwrap();
-        let other_username = self.user.as_ref().unwrap().username.clone();
+        // let other_username = self.user.as_ref().unwrap().username.clone();
         // println!("Connected to {}", other_username);
+        self.user = Some(User::new("".to_string(), src.ip().to_string(), false));
+        self.user.as_mut().unwrap().stream = Some(stream.try_clone().unwrap());
 
         thread::spawn(move || {
             println!("New connection: {}", src);
@@ -156,8 +157,39 @@ impl App {
             loop {
                 match stream.read(&mut buf) {
                     Ok(bytes_read) => {
+                        if(bytes_read == 0) {
+                            println!("Connection closed by the remote");
+                            break;
+                        }
                         let msg = String::from_utf8_lossy(&buf[..bytes_read]);
-                        println!("{other_username}: {}", msg);
+                        println!("{src}: {}", msg);
+                    }
+                    Err(e) => {
+                        println!("Connection closed by the remote: {}", e);
+                        break;
+                    }
+                }
+            }    
+        });
+    }
+    pub fn listen_streamline_client(&mut self) {
+        if(self.user.is_none()) {
+            println!("Could not listen to server. Not connected!");
+            return;
+        }
+        let mut listener_client = self.user.as_ref().unwrap().stream.as_ref().unwrap().try_clone().unwrap();
+        thread::spawn(move || {
+            println!("New connection: {}", "Server");
+            let mut buf = [0; 1024];
+            loop {
+                match listener_client.read(&mut buf) {
+                    Ok(bytes_read) => {
+                        if(bytes_read == 0) {
+                            println!("Connection closed by the remote");
+                            break;
+                        }
+                        let msg = String::from_utf8_lossy(&buf[..bytes_read]);
+                        println!("Server: {}", msg);
                     }
                     Err(e) => {
                         println!("Connection closed by the remote: {}", e);
@@ -192,6 +224,7 @@ impl App {
     pub fn send_user(&self, msg: String) {
         if (self.user.is_none()) {
             println!("Could not send to user. Not connected!");
+            return;
         }
         let code = 11 as u8;
         let msg = format!("{}:{}", code, msg);
@@ -203,7 +236,7 @@ impl App {
     }
 
     pub fn run(&mut self) {
-        let th = self.listen_multiline();
+        self.listen_multiline();
         self.set_my_ip();
 
         println!("Username: {}", self.me.username);
@@ -211,12 +244,12 @@ impl App {
         match &self.mode {
             Mode::None => {
                 println!("Mode: None");
-                self.listen_streamline(th);
+                self.listen_streamline();
                 loop {
                     let mut input = String::new();
                     stdin().read_line(&mut input).unwrap();
                     let msg = input.pop();
-                    // self.send_room(input);
+                    self.send_user(input);
                 }
             }
             Mode::Room => {
@@ -231,6 +264,7 @@ impl App {
             Mode::Direct(val) => {
                 println!("Mode: Direct, Address: {}", val);
                 self.set_user(val.clone());
+                // self.listen_streamline_client();
                 loop {
                     let mut input = String::new();
                     stdin().read_line(&mut input).unwrap();
