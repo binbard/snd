@@ -32,7 +32,12 @@ fn main() {
                 mode = Mode::Room;
             }
             s if s.starts_with('@') || s.starts_with('.') || s.starts_with('1') => {
-                mode = Mode::Direct(args[i].clone());
+                if(s.starts_with('@') || s.starts_with('.')) {
+                    username = args[i].clone();
+                    username.remove(0);
+                } else {
+                    username = args[i].clone();
+                }
             }
             "--username" | "-u" => {
                 if i + 1 < args.len() {
@@ -41,7 +46,8 @@ fn main() {
                 }
             }
             _ => {
-                println!("Invalid argument: {}", args[i]);
+                // println!("Invalid argument: {}", args[i]);
+                mode = Mode::None;
             }
         }
         i += 1;

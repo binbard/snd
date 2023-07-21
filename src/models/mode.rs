@@ -1,6 +1,6 @@
 use std::{
-    io::{Read, stdin},
-    net::{Ipv4Addr, TcpListener, UdpSocket, TcpStream},
+    io::{stdin, Read},
+    net::{Ipv4Addr, TcpListener, TcpStream, UdpSocket},
     thread,
 };
 
@@ -47,7 +47,12 @@ impl App {
             .send_to(msg.as_bytes(), "224.0.0.1:4000")
             .unwrap();
     }
-    pub fn send_room(&self, msg: String) {
+    pub fn send_room(&self, mut msg: String) {
+        if (self.me.username != "".to_string()) {
+            msg = format!("({}): {}", self.me.username.clone(), msg);
+        } else {
+            msg = ": ".to_string() + &msg;
+        }
         self.send_multicast(6, msg);
     }
     pub fn query(&self, code: u8, query: String, ack: bool) -> String {
@@ -76,12 +81,12 @@ impl App {
             .expect("Failed to clone UDP Socket");
 
         let username = self.me.username.clone();
-        let my_ip = self.me.uid.clone();
+        let my_ip: String = self.me.uid.clone();
         let is_user = self.user.is_some();
 
         let th = thread::spawn(move || {
             let mut msg = [0u8; 1024];
-            
+
             loop {
                 match socket_clone.recv_from(&mut msg) {
                     Ok((amt, src)) => {
@@ -109,11 +114,13 @@ impl App {
                             }
                             6 => {
                                 // ROOM_MESSAGE
-                                println!("M] Broadcast Message from {}: {}", src.ip().to_string(), msg);
+                                println!("M] {}{}", src.ip().to_string(), msg);
                             }
                             9 => {
                                 println!("M] Username query from {}: {}", src, msg);
-                                if (msg == username || (msg.starts_with('.') && my_ip.ends_with(&msg))) {
+                                if (msg == username
+                                    || (msg.starts_with('.') && my_ip.ends_with(&msg)))
+                                {
                                     println!("{} is me", msg);
                                     let res = format!("{}{}", 10 as char, username);
                                     socket_clone.send_to(res.as_bytes(), src).unwrap();
@@ -135,7 +142,7 @@ impl App {
     pub fn listen_streamline(&self) {
         let listener = TcpListener::bind("0.0.0.0:4002").unwrap();
         let (mut stream, mut src) = listener.accept().unwrap();
-        
+
         thread::spawn(move || {
             println!("New connection: {}", src);
             let mut buf;
@@ -150,7 +157,12 @@ impl App {
 
     pub fn set_my_ip(&mut self) {
         // println!("Setting my IP");
-        self.me.uid = self.query(0, "".to_string(), true).splitn(2,'|').last().unwrap().to_string();
+        self.me.uid = self
+            .query(0, "".to_string(), true)
+            .splitn(2, '|')
+            .last()
+            .unwrap()
+            .to_string();
         println!("My IP: '{}'", self.me.uid);
     }
     pub fn get_user(&self, uname: String) -> User {
@@ -163,12 +175,16 @@ impl App {
         user
     }
     pub fn send_user(&self, msg: String) {
-        if(self.user.is_none()) {
+        if (self.user.is_none()) {
             println!("Could not send to user. Not connected!");
         }
         let code = 11 as u8;
         let msg = format!("{}:{}", code, msg);
-        self.user.as_ref().unwrap().send(msg).expect("Failed to send message to user");
+        self.user
+            .as_ref()
+            .unwrap()
+            .send(msg)
+            .expect("Failed to send message to user");
     }
 
     pub fn run(&mut self) {
@@ -190,7 +206,7 @@ impl App {
             }
             Mode::Room => {
                 println!("Mode: Room");
-                loop{
+                loop {
                     let mut input = String::new();
                     stdin().read_line(&mut input).unwrap();
                     let msg = input.pop();
@@ -200,7 +216,7 @@ impl App {
             Mode::Direct(val) => {
                 println!("Mode: Direct, Address: {}", val);
                 self.user = Some(self.get_user(val.clone()));
-                loop{
+                loop {
                     let mut input = String::new();
                     stdin().read_line(&mut input).unwrap();
                     let msg = input.pop();
