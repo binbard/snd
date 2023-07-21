@@ -78,7 +78,7 @@ impl App {
 
         result
     }
-    pub fn listen_multiline(&self) {
+    pub fn listen_multiline(&self) -> thread::JoinHandle<()> {
         let socket_clone = self
             .sock_server
             .try_clone()
@@ -141,21 +141,30 @@ impl App {
                 }
             }
         });
+        th
     }
 
-    pub fn listen_streamline(&self) {
+    pub fn listen_streamline(&self, th: thread::JoinHandle<()>) {
         let listener = TcpListener::bind("0.0.0.0:4002").unwrap();
         let (mut stream, mut src) = listener.accept().unwrap();
+        let other_username = self.user.as_ref().unwrap().username.clone();
+        // println!("Connected to {}", other_username);
 
         thread::spawn(move || {
             println!("New connection: {}", src);
-            let mut buf;
+            let mut buf = [0; 1024];
             loop {
-                buf = [0; 1024];
-                let bytes_read = stream.read(&mut buf).unwrap();
-                let msg = String::from_utf8_lossy(&buf[..bytes_read]);
-                println!("Received: {}", msg);
-            }
+                match stream.read(&mut buf) {
+                    Ok(bytes_read) => {
+                        let msg = String::from_utf8_lossy(&buf[..bytes_read]);
+                        println!("{other_username}: {}", msg);
+                    }
+                    Err(e) => {
+                        println!("Connection closed by the remote: {}", e);
+                        break;
+                    }
+                }
+            }    
         });
     }
 
@@ -175,9 +184,9 @@ impl App {
         let user_name = result.splitn(2, '|').last().unwrap().to_string();
         println!("Found user: {}", result);
         let mut user = User::new(user_name, user_ip.clone(), false);
-        let dst = user_ip.clone() + &":4000".to_string();
-        println!("Connecting to user: {}", user_ip);
+        let dst = user_ip.clone() + &":4002".to_string();
         user.stream = Some(TcpStream::connect(dst).expect("Failed to connect to user"));
+        println!("Connected to user: {}", user_ip);
         self.user = Some(user);
     }
     pub fn send_user(&self, msg: String) {
@@ -194,7 +203,7 @@ impl App {
     }
 
     pub fn run(&mut self) {
-        self.listen_multiline();
+        let th = self.listen_multiline();
         self.set_my_ip();
 
         println!("Username: {}", self.me.username);
@@ -202,12 +211,12 @@ impl App {
         match &self.mode {
             Mode::None => {
                 println!("Mode: None");
-                self.listen_streamline();
+                self.listen_streamline(th);
                 loop {
                     let mut input = String::new();
                     stdin().read_line(&mut input).unwrap();
                     let msg = input.pop();
-                    self.send_room(input);
+                    // self.send_room(input);
                 }
             }
             Mode::Room => {
