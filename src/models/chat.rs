@@ -61,7 +61,7 @@ impl User {
     }
     pub fn send_msg(&mut self, text: String) -> Result<(), Error>{
         let code = 11 as u8;
-        let msg = format!("{}:{}", code, text);
+        let msg = format!("{}", text);
         self.send(msg)?;
         // let user = Rc::new(self.my_ref());
         let message = Message::new(self.uid.clone(), text);
