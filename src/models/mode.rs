@@ -121,7 +121,7 @@ impl App {
                                 if (msg == username
                                     || (msg.starts_with('.') && my_ip.ends_with(&msg)))
                                 {
-                                    println!("{} is me", msg);
+                                    println!("{} is me. Sent {}", msg, username);
                                     let res = format!("{}{}", 10 as char, username);
                                     socket_clone.send_to(res.as_bytes(), src).unwrap();
                                 }
